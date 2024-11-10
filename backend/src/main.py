@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict
 import logging
 from datetime import datetime
-from src.services.transport_service import TransportDataManager
-from src.models.esquemas import (
+from services.transport_service import TransportDataManager
+from models.esquemas import (
     RouteBase,
     AlternativeRoute,
     AGEBAnalysis,

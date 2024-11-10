@@ -3,14 +3,14 @@ from shapely.geometry import Point
 import logging
 from typing import List, Dict, Optional
 from pathlib import Path
-from src.models.esquemas import (
+from models.esquemas import (
     AGEBAnalysis, 
     AlternativeRoute,
     GTFSRoute,
     GTFSStop,
     RouteStatus
 )
-from src.utils.geojson_handler import GeoJSONHandler
+from utils.geojson_handler import GeoJSONHandler
 
 logger = logging.getLogger(__name__)
 
