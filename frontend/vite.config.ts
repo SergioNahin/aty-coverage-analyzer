@@ -12,7 +12,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://174d-148-204-15-15.ngrok-free.app', // Cambia esto a tu URL de ngrok
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path,
@@ -28,6 +28,12 @@ export default defineConfig({
           });
         },
       },
+      '/ws': {  // Agrega esto si estás usando WebSockets
+        target: 'wss://174d-148-204-15-15.ngrok-free.app',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      }
     },
   },
   resolve: {
