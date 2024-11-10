@@ -1,0 +1,123 @@
+# Backend Python
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Frontend Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Cache directories
+.mypy_cache/
+.pytest_cache/
+.eslintcache
+.npm
+.yarn/cache
+.prettiercache
+
+# Test coverage
+coverage/
+.coverage
+coverage.xml
+*.cover
+
+# Build output
+build/
+dist/
+out/
+.next/
+.nuxt/
+.output/
+
+# Database
+*.sqlite3
+*.db
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+*.tmproj
+.history/
+
+# Data files
+*.csv
+*.xls
+*.xlsx
+
+# Include specific data files
+!data/aforo.geojson
+!data/paradas.geojson
+!data/gtfs/*.txt
+
+# Dependency lock files (uncomment if you want to track them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Optional: Frontend framework specific
+# Vite
+.vite/
+
+# React
+.cache/
+public/hot
+
+# Vue
+.nuxt
+.nitro
+.cache
+.output
+dist
