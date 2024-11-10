@@ -12,23 +12,18 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://174d-148-204-15-15.ngrok-free.app', // Cambia esto a tu URL de ngrok
+        target: 'https://174d-148-204-15-15.ngrok-free.app',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
+        ws: true,
+        rewrite: (path) => path.replace(/^\/api/, ''), // Remueve el prefijo /api
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,PATCH,OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
         },
       },
-      '/ws': {  // Agrega esto si estás usando WebSockets
+      '/ws': {
         target: 'wss://174d-148-204-15-15.ngrok-free.app',
         ws: true,
         changeOrigin: true,

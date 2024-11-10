@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 # FastAPI app
 app = FastAPI(title="API de Transporte Mérida")
 
+# Configura CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],  # En producción, especifica los dominios permitidos
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
