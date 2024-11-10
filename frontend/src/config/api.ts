@@ -48,14 +48,23 @@ interface Stop {
   
   // API Service
   export const transportAPI = {
-    // Obtener paradas
     getStops: async (): Promise<ApiResponse<{ sample_stops: Stop[] }>> => {
       try {
-        const response = await fetch(config.endpoints.stops);
+        const response = await fetch('/api/debug/paradas', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+  
         if (!response.ok) {
-          throw new Error('Error al obtener paradas');
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return await response.json();
+  
+        const data = await response.json();
+        console.log('API Response:', data);
+        
+        return data;
       } catch (error) {
         console.error('Error fetching stops:', error);
         throw error;
