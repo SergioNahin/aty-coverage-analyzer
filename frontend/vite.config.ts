@@ -12,7 +12,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://174d-148-204-15-15.ngrok-free.app',
+        target: 'https://b00f-148-204-15-15.ngrok-free.app',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -24,7 +24,7 @@ export default defineConfig({
         },
       },
       '/ws': {
-        target: 'wss://174d-148-204-15-15.ngrok-free.app',
+        target: 'wss://b00f-148-204-15-15.ngrok-free.app',
         ws: true,
         changeOrigin: true,
         secure: false,

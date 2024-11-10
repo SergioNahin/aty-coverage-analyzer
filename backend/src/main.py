@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict
 import logging
@@ -18,13 +19,29 @@ logger = logging.getLogger(__name__)
 # FastAPI app
 app = FastAPI(title="API de Transporte Mérida")
 
+# Middleware para manejo de errores
+@app.middleware("http")
+async def error_handling_middleware(request: Request, call_next):
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
+
 # Configura CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especifica los dominios permitidos
+    allow_origins=["http://localhost:5173"],  # URL de desarrollo
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Instancia global del manejador de datos
@@ -62,76 +79,143 @@ notification_manager = NotificationManager()
 # Endpoints
 @app.get("/")
 async def root():
-    return {"message": "API de Transporte Mérida - Sistema Va y Ven"}
+    return JSONResponse(
+        content={"message": "API de Transporte Mérida - Sistema Va y Ven"},
+        status_code=200
+    )
 
 @app.get("/api/rutas")
 async def get_routes():
     """Obtener todas las rutas del sistema Va y Ven"""
     try:
         routes = transport_manager.rutas_gdf[['route_id', 'route_long_name']].to_dict('records')
-        return ServiceResponse(
-            status="success",
-            data={"routes": routes}
+        return JSONResponse(
+            content={
+                "status": "success",
+                "data": {"routes": routes}
+            },
+            status_code=200
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error getting routes: {str(e)}")
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
 
 @app.get("/api/rutas/alternativas")
 async def get_alternative_routes(origen: str, destino: str):
     """Obtener rutas alternativas entre dos puntos"""
     try:
         if not origen or not destino:
-            raise HTTPException(
-                status_code=400,
-                detail="Both origen and destino parameters are required"
+            return JSONResponse(
+                content={
+                    "status": "error",
+                    "message": "Both origen and destino parameters are required"
+                },
+                status_code=400
             )
             
         alternatives = transport_manager.get_route_alternatives(origen, destino)
-        return ServiceResponse(
-            status="success",
-            data={"alternatives": alternatives}
+        return JSONResponse(
+            content={
+                "status": "success",
+                "data": {"alternatives": alternatives}
+            },
+            status_code=200
         )
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=404
+        )
     except Exception as e:
         logger.error(f"Error in alternative routes: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
 
 @app.get("/api/cobertura/{ageb}")
 async def get_coverage_analysis(ageb: str):
     """Analizar cobertura en un AGEB específico"""
     try:
         if not ageb:
-            raise HTTPException(
-                status_code=400,
-                detail="AGEB parameter is required"
+            return JSONResponse(
+                content={
+                    "status": "error",
+                    "message": "AGEB parameter is required"
+                },
+                status_code=400
             )
             
         analysis = transport_manager.analyze_coverage(ageb)
-        return ServiceResponse(
-            status="success",
-            data={"analysis": analysis}
+        return JSONResponse(
+            content={
+                "status": "success",
+                "data": {"analysis": analysis}
+            },
+            status_code=200
         )
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=404
+        )
     except Exception as e:
         logger.error(f"Error in coverage analysis: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
+
 @app.get("/api/debug/agebs")
 async def get_available_agebs():
     """Obtener lista de AGEBs disponibles"""
     try:
         if transport_manager.aforo_gdf is not None:
             agebs = transport_manager.aforo_gdf['CVE_AGEB'].unique().tolist()
-            return ServiceResponse(
-                status="success",
-                data={
-                    "total_agebs": len(agebs),
-                    "sample_agebs": agebs[:20]  # Mostrar primeros 20 AGEBs
-                }
+            return JSONResponse(
+                content={
+                    "status": "success",
+                    "data": {
+                        "total_agebs": len(agebs),
+                        "sample_agebs": agebs[:20]
+                    }
+                },
+                status_code=200
+            )
+        else:
+            return JSONResponse(
+                content={
+                    "status": "error",
+                    "message": "No AGEB data available"
+                },
+                status_code=404
             )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
 
 @app.get("/api/debug/paradas")
 async def get_available_stops():
@@ -139,15 +223,32 @@ async def get_available_stops():
     try:
         if transport_manager.paradas_gdf is not None:
             stops = transport_manager.paradas_gdf['stop_id'].unique().tolist()
-            return ServiceResponse(
-                status="success",
-                data={
-                    "total_stops": len(stops),
-                    "sample_stops": stops[:20]  # Mostrar primeras 20 paradas
-                }
+            return JSONResponse(
+                content={
+                    "status": "success",
+                    "data": {
+                        "total_stops": len(stops),
+                        "sample_stops": stops[:20]
+                    }
+                },
+                status_code=200
+            )
+        else:
+            return JSONResponse(
+                content={
+                    "status": "error",
+                    "message": "No stops data available"
+                },
+                status_code=404
             )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
 
 @app.get("/api/debug/stats")
 async def get_system_stats():
@@ -162,19 +263,27 @@ async def get_system_stats():
         }
         
         if transport_manager.aforo_gdf is not None:
-            # Obtener top 5 AGEBs por aforo
             top_agebs = transport_manager.aforo_gdf.groupby('CVE_AGEB')['aforo'].mean().nlargest(5)
             stats["top_agebs_por_aforo"] = [
                 {"ageb": ageb, "aforo_promedio": float(aforo)}
                 for ageb, aforo in top_agebs.items()
             ]
             
-        return ServiceResponse(
-            status="success",
-            data=stats
+        return JSONResponse(
+            content={
+                "status": "success",
+                "data": stats
+            },
+            status_code=200
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
 
 @app.websocket("/ws/va-y-ven")
 async def websocket_endpoint(websocket: WebSocket):
