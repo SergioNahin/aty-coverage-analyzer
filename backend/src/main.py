@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 # FastAPI app
 app = FastAPI(title="API de Transporte Mérida")
 
-# Middleware para manejo de errores
 @app.middleware("http")
 async def error_handling_middleware(request: Request, call_next):
     try:
@@ -37,7 +36,7 @@ async def error_handling_middleware(request: Request, call_next):
 # Configura CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # URL de desarrollo
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
@@ -76,7 +75,6 @@ class NotificationManager:
 
 notification_manager = NotificationManager()
 
-# Endpoints
 @app.get("/")
 async def root():
     return JSONResponse(
@@ -86,13 +84,14 @@ async def root():
 
 @app.get("/api/rutas")
 async def get_routes():
-    """Obtener todas las rutas del sistema Va y Ven"""
+    """Obtener todas las rutas del sistema Va y Ven en formato GeoJSON"""
     try:
-        routes = transport_manager.rutas_gdf[['route_id', 'route_long_name']].to_dict('records')
+        # Convertir el GeoDataFrame a GeoJSON
+        routes_geojson = transport_manager.rutas_gdf.to_json()
         return JSONResponse(
             content={
                 "status": "success",
-                "data": {"routes": routes}
+                "data": routes_geojson
             },
             status_code=200
         )
@@ -106,9 +105,64 @@ async def get_routes():
             status_code=500
         )
 
+@app.get("/api/paradas")
+async def get_stops():
+    """Obtener todas las paradas en formato GeoJSON"""
+    try:
+        # Convertir el GeoDataFrame a GeoJSON
+        stops_geojson = transport_manager.paradas_gdf.to_json()
+        return JSONResponse(
+            content={
+                "status": "success",
+                "data": stops_geojson
+            },
+            status_code=200
+        )
+    except Exception as e:
+        logger.error(f"Error getting stops: {str(e)}")
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
+
+@app.get("/api/rutas/{route_id}")
+async def get_route(route_id: str):
+    """Obtener una ruta específica en formato GeoJSON"""
+    try:
+        # Filtrar la ruta específica y convertir a GeoJSON
+        route = transport_manager.rutas_gdf[transport_manager.rutas_gdf['route_id'] == route_id]
+        if len(route) == 0:
+            return JSONResponse(
+                content={
+                    "status": "error",
+                    "message": f"Route {route_id} not found"
+                },
+                status_code=404
+            )
+        route_geojson = route.to_json()
+        return JSONResponse(
+            content={
+                "status": "success",
+                "data": route_geojson
+            },
+            status_code=200
+        )
+    except Exception as e:
+        logger.error(f"Error getting route {route_id}: {str(e)}")
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": str(e)
+            },
+            status_code=500
+        )
+
 @app.get("/api/rutas/alternativas")
 async def get_alternative_routes(origen: str, destino: str):
-    """Obtener rutas alternativas entre dos puntos"""
+    """Obtener rutas alternativas entre dos puntos en formato GeoJSON"""
     try:
         if not origen or not destino:
             return JSONResponse(
@@ -120,10 +174,11 @@ async def get_alternative_routes(origen: str, destino: str):
             )
             
         alternatives = transport_manager.get_route_alternatives(origen, destino)
+        # Asumiendo que alternatives ya está en formato GeoJSON o necesita conversión
         return JSONResponse(
             content={
                 "status": "success",
-                "data": {"alternatives": alternatives}
+                "data": alternatives
             },
             status_code=200
         )
@@ -147,7 +202,7 @@ async def get_alternative_routes(origen: str, destino: str):
 
 @app.get("/api/cobertura/{ageb}")
 async def get_coverage_analysis(ageb: str):
-    """Analizar cobertura en un AGEB específico"""
+    """Analizar cobertura en un AGEB específico y devolver en formato GeoJSON"""
     try:
         if not ageb:
             return JSONResponse(
@@ -162,7 +217,7 @@ async def get_coverage_analysis(ageb: str):
         return JSONResponse(
             content={
                 "status": "success",
-                "data": {"analysis": analysis}
+                "data": analysis
             },
             status_code=200
         )
@@ -176,107 +231,6 @@ async def get_coverage_analysis(ageb: str):
         )
     except Exception as e:
         logger.error(f"Error in coverage analysis: {str(e)}")
-        return JSONResponse(
-            content={
-                "status": "error",
-                "message": str(e)
-            },
-            status_code=500
-        )
-
-@app.get("/api/debug/agebs")
-async def get_available_agebs():
-    """Obtener lista de AGEBs disponibles"""
-    try:
-        if transport_manager.aforo_gdf is not None:
-            agebs = transport_manager.aforo_gdf['CVE_AGEB'].unique().tolist()
-            return JSONResponse(
-                content={
-                    "status": "success",
-                    "data": {
-                        "total_agebs": len(agebs),
-                        "sample_agebs": agebs[:20]
-                    }
-                },
-                status_code=200
-            )
-        else:
-            return JSONResponse(
-                content={
-                    "status": "error",
-                    "message": "No AGEB data available"
-                },
-                status_code=404
-            )
-    except Exception as e:
-        return JSONResponse(
-            content={
-                "status": "error",
-                "message": str(e)
-            },
-            status_code=500
-        )
-
-@app.get("/api/debug/paradas")
-async def get_available_stops():
-    """Obtener lista de paradas disponibles"""
-    try:
-        if transport_manager.paradas_gdf is not None:
-            stops = transport_manager.paradas_gdf['stop_id'].unique().tolist()
-            return JSONResponse(
-                content={
-                    "status": "success",
-                    "data": {
-                        "total_stops": len(stops),
-                        "sample_stops": stops[:20]
-                    }
-                },
-                status_code=200
-            )
-        else:
-            return JSONResponse(
-                content={
-                    "status": "error",
-                    "message": "No stops data available"
-                },
-                status_code=404
-            )
-    except Exception as e:
-        return JSONResponse(
-            content={
-                "status": "error",
-                "message": str(e)
-            },
-            status_code=500
-        )
-
-@app.get("/api/debug/stats")
-async def get_system_stats():
-    """Obtener estadísticas generales del sistema"""
-    try:
-        stats = {
-            "total_agebs": len(transport_manager.aforo_gdf['CVE_AGEB'].unique()) if transport_manager.aforo_gdf is not None else 0,
-            "total_paradas": len(transport_manager.paradas_gdf) if transport_manager.paradas_gdf is not None else 0,
-            "total_rutas": len(transport_manager.rutas_gdf) if transport_manager.rutas_gdf is not None else 0,
-            "aforo_total": float(transport_manager.aforo_gdf['aforo'].sum()) if transport_manager.aforo_gdf is not None else 0,
-            "top_agebs_por_aforo": []
-        }
-        
-        if transport_manager.aforo_gdf is not None:
-            top_agebs = transport_manager.aforo_gdf.groupby('CVE_AGEB')['aforo'].mean().nlargest(5)
-            stats["top_agebs_por_aforo"] = [
-                {"ageb": ageb, "aforo_promedio": float(aforo)}
-                for ageb, aforo in top_agebs.items()
-            ]
-            
-        return JSONResponse(
-            content={
-                "status": "success",
-                "data": stats
-            },
-            status_code=200
-        )
-    except Exception as e:
         return JSONResponse(
             content={
                 "status": "error",

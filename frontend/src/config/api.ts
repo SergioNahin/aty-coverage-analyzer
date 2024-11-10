@@ -1,16 +1,16 @@
-// Tipos de datos
-interface Stop {
+export interface Stop {
     stop_id: string;
     stop_name: string;
     stop_lat: number;
     stop_lon: number;
   }
   
-  interface Route {
+  export interface Route {
     route_id: string;
     route_long_name: string;
   }
   
+
   interface AlternativeRoute {
     origen: string;
     destino: string;
@@ -29,7 +29,7 @@ interface Stop {
     horas_pico?: { hora: string; aforo: number }[];
   }
   
-  interface ApiResponse<T> {
+  export interface ApiResponse<T> {
     status: string;
     data: T;
     message?: string;

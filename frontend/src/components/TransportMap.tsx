@@ -1,44 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
 import { DefaultIcon, BusStopIcon } from '../utils/LeafletIcons';
-import { transportAPI } from '@/config/api'; // Importamos solo transportAPI
+import { transportAPI } from '@/config/api';
+import type { Stop, Route, ApiResponse } from '@/config/api'; // Importar los tipos desde api.ts
 import 'leaflet/dist/leaflet.css';
-
-// Definimos la interfaz Stop aquí
-interface Stop {
-  stop_id: string;
-  stop_name: string;
-  stop_lat: number;
-  stop_lon: number;
-}
 
 const TransportMap = () => {
   const [stops, setStops] = useState<Stop[]>([]);
+  const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const center: [number, number] = [20.9674, -89.6235]; // Coordenadas de Mérida
+  const center: [number, number] = [20.9674, -89.6235];
 
   useEffect(() => {
-    const fetchStops = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await transportAPI.getStops();
         
-        if (response.status === 'success' && response.data.sample_stops) {
-          setStops(response.data.sample_stops);
-        } else {
-          setError('No se pudieron cargar las paradas');
+        // Fetch stops
+        const stopsResponse: ApiResponse<{ sample_stops: Stop[] }> = await transportAPI.getStops();
+        if (stopsResponse.status === 'success' && stopsResponse.data.sample_stops) {
+          setStops(stopsResponse.data.sample_stops);
         }
+
+        // Fetch routes
+        const routesResponse: ApiResponse<{ routes: Route[] }> = await transportAPI.getRoutes();
+        if (routesResponse.status === 'success' && routesResponse.data.routes) {
+          setRoutes(routesResponse.data.routes);
+        }
+
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Error de conexión con el servidor');
-        console.error('Error loading stops:', error);
+        console.error('Error loading data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStops();
+    fetchData();
   }, []);
+
+  const routeStyle = {
+    color: '#3388ff',
+    weight: 3,
+    opacity: 0.7
+  };
 
   if (loading) {
     return (
@@ -90,15 +96,6 @@ const TransportMap = () => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          <Marker position={center} icon={DefaultIcon}>
-            <Popup>
-              <div className="p-2">
-                <h3 className="font-bold">Centro de Mérida</h3>
-                <p className="text-sm text-gray-600">Punto de referencia central</p>
-              </div>
-            </Popup>
-          </Marker>
-
           {stops.map((stop) => (
             <Marker
               key={stop.stop_id}
@@ -110,11 +107,20 @@ const TransportMap = () => {
                   <h3 className="font-bold">{stop.stop_name}</h3>
                   <p className="text-sm text-gray-600">ID: {stop.stop_id}</p>
                   <p className="text-xs text-gray-500">
-                    {stop.stop_lat.toFixed(6)}, {stop.stop_lon.toFixed(6)}
+                    {stop.stop_lat}, {stop.stop_lon}
                   </p>
                 </div>
               </Popup>
             </Marker>
+          ))}
+
+          {routes.map((route) => (
+            <Popup key={route.route_id}>
+              <div className="p-2">
+                <h3 className="font-bold">{route.route_long_name}</h3>
+                <p className="text-sm text-gray-600">ID: {route.route_id}</p>
+              </div>
+            </Popup>
           ))}
         </MapContainer>
       </div>
